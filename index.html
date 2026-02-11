@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MrBlastCoins</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; user-select: none; -webkit-tap-highlight-color: transparent; }
+        .glass { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); border: 1px solid rgba(230, 230, 230, 1); }
+        .nav-active { color: #000; font-weight: 600; border-top: 2px solid #000; }
+        .page { display: none; animation: fadeIn 0.3s ease; }
+        .page.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* Sağ tık koruması için görsel önlem */
+        * { -webkit-touch-callout: none; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900">
+
+    <header class="p-5 flex justify-between items-center bg-white border-b">
+        <h1 class="text-xl font-bold tracking-tight">MrBlastCoins</h1>
+        <div id="adminBadge" class="hidden bg-black text-white text-[10px] px-2 py-1 rounded-full">ADMIN</div>
+    </header>
+
+    <main class="p-5 pb-24">
+        
+        <section id="mining" class="page active space-y-6">
+            <div class="bg-white p-6 rounded-3xl shadow-sm border text-center">
+                <p class="text-sm text-gray-500 uppercase tracking-widest">Mining Gücü</p>
+                <h2 id="ghDisplay" class="text-4xl font-bold my-2">0.00 GH/s</h2>
+                <p id="dailyEarnings" class="text-green-600 font-medium">$0.00 / gün</p>
+            </div>
+
+            <div class="bg-black text-white p-5 rounded-2xl flex justify-between items-center">
+                <div>
+                    <p class="text-xs opacity-70">Toplam Bakiye</p>
+                    <h3 id="balanceDisplay" class="text-2xl font-bold">$0.0000</h3>
+                </div>
+                <button onclick="watchAd()" class="bg-white text-black px-4 py-2 rounded-xl text-sm font-bold">Reklam İzle</button>
+            </div>
+
+            <div class="border-2 border-dashed border-gray-200 p-4 rounded-2xl text-center">
+                <p class="text-sm">📢 Kanala katıl <b>0.1 GH/s</b> kazan!</p>
+                <a href="https://t.me/KanalLinkiniz" class="text-blue-600 font-bold block mt-2 underline">KANALA GİT</a>
+                <button onclick="claimChannelReward()" class="mt-2 bg-gray-100 px-4 py-1 rounded-lg text-xs">Ödülü Al</button>
+            </div>
+            
+            <div id="adexium-space" class="h-20 bg-gray-100 rounded-xl flex items-center justify-center text-gray-400 text-xs italic">
+                Adexium Reklam Alanı
+            </div>
+        </section>
+
+        <section id="team" class="page space-y-4">
+            <h2 class="text-xl font-bold">Ekibim</h2>
+            <div class="bg-white p-4 rounded-2xl border">
+                <p class="text-sm text-gray-600">Referans Linkin:</p>
+                <code id="refLink" class="block bg-gray-50 p-2 rounded mt-1 text-[10px] break-all">t.me/MrBlastCoinsBot?start=user_id</code>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="bg-white p-4 rounded-2xl border text-center">
+                    <p class="text-xs text-gray-500">Üye Sayısı</p>
+                    <p id="refCount" class="text-xl font-bold">0</p>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border text-center">
+                    <p class="text-xs text-gray-500">Ref Kazancı</p>
+                    <p class="text-xl font-bold">0.05 GH/s</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="wallet" class="page space-y-4">
+            <h2 class="text-xl font-bold">Cüzdan & Çekim</h2>
+            <div class="bg-white p-5 rounded-2xl border">
+                <div class="flex justify-between mb-4">
+                    <span>Görev Point:</span>
+                    <span id="pointDisplay" class="font-bold">0 PT</span>
+                </div>
+                <div class="text-xs text-gray-400 mb-6">
+                    * Her $1 çekim için 25 Görev Point gereklidir. Min: $5
+                </div>
+                
+                <input id="withdrawAmount" type="number" placeholder="Miktar (USD)" class="w-full p-3 rounded-xl border mb-3 outline-none">
+                <input id="withdrawAddress" type="text" placeholder="USDT (TRC20) Adresi" class="w-full p-3 rounded-xl border mb-4 outline-none">
+                
+                <button onclick="requestWithdraw()" class="w-full bg-black text-white py-4 rounded-2xl font-bold">Ödeme Talebi Oluştur</button>
+            </div>
+        </section>
+
+        <section id="profile" class="page space-y-4">
+            <div class="flex items-center space-x-4">
+                <div class="w-16 h-16 bg-gray-200 rounded-full" id="userPhoto"></div>
+                <div>
+                    <h3 id="userName" class="font-bold text-lg">Kullanıcı</h3>
+                    <p id="userId" class="text-sm text-gray-500">ID: ---</p>
+                </div>
+            </div>
+
+            <div id="adminPanel" class="hidden pt-6 border-t space-y-4">
+                <h2 class="text-red-600 font-bold uppercase tracking-tighter">Admin Kontrol Paneli</h2>
+                <div class="bg-white p-4 rounded-2xl border space-y-2">
+                    <p class="text-xs font-bold">İstatistikler</p>
+                    <p class="text-sm">Toplam Kullanıcı: <span id="statUsers">1</span></p>
+                    <p class="text-sm">Bekleyen Çekim: <span id="statWithdraws">0</span></p>
+                </div>
+                <button class="w-full border p-3 rounded-xl text-sm">Kullanıcıları Ara</button>
+            </div>
+        </section>
+
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around p-3 pb-6 glass">
+        <button onclick="showPage('mining')" class="flex flex-col items-center text-gray-400">
+            <span class="text-[10px]">Mining</span>
+        </button>
+        <button onclick="showPage('team')" class="flex flex-col items-center text-gray-400">
+            <span class="text-[10px]">My Team</span>
+        </button>
+        <button onclick="showPage('wallet')" class="flex flex-col items-center text-gray-400">
+            <span class="text-[10px]">Wallet</span>
+        </button>
+        <button onclick="showPage('profile')" class="flex flex-col items-center text-gray-400">
+            <span class="text-[10px]">Profile</span>
+        </button>
+    </nav>
+
+    <script>
+        const tg = window.Telegram.WebApp;
+        tg.expand();
+
+        // Veritabanı simülasyonu (Gerçek projede bir backend API'ye bağlanmalıdır)
+        let userData = {
+            id: tg.initDataUnsafe.user?.id || 0,
+            adminId: 8392479231,
+            gh: 0.0,
+            balance: 0.0,
+            points: 0,
+            refs: 0,
+            isJoined: false
+        };
+
+        const GH_RATE = 0.0987; // 1 GH/s günlük USD kazancı
+
+        function init() {
+            // Sağ tık engelleme
+            document.addEventListener('contextmenu', event => event.preventDefault());
+
+            // Admin kontrolü
+            if (userData.id == userData.adminId) {
+                document.getElementById('adminPanel').classList.remove('hidden');
+                document.getElementById('adminBadge').classList.remove('hidden');
+            }
+
+            // Referans kontrolü (start_param)
+            const params = new URLSearchParams(window.location.search);
+            const startParam = tg.initDataUnsafe.start_param;
+            if (startParam && startParam !== userData.id.toString()) {
+                // Burada backend'e "beni şu kişi davet etti" bilgisi gönderilir
+                userData.gh += 0.05;
+                console.log("Ref ödülü eklendi: " + startParam);
+            }
+
+            document.getElementById('userId').innerText = "ID: " + userData.id;
+            document.getElementById('userName').innerText = tg.initDataUnsafe.user?.first_name || "Misafir";
+            
+            updateUI();
+            startMining();
+        }
+
+        function updateUI() {
+            document.getElementById('ghDisplay').innerText = userData.gh.toFixed(4) + " GH/s";
+            document.getElementById('dailyEarnings').innerText = "$" + (userData.gh * GH_RATE).toFixed(4) + " / gün";
+            document.getElementById('balanceDisplay').innerText = "$" + userData.balance.toFixed(6);
+            document.getElementById('pointDisplay').innerText = userData.points + " PT";
+            document.getElementById('refCount').innerText = userData.refs;
+        }
+
+        function showPage(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        }
+
+        function watchAd() {
+            // Adexium kodu buraya gelecek
+            alert("Reklam yükleniyor...");
+            setTimeout(() => {
+                userData.gh += 0.01;
+                userData.points += 5; // Her reklamda point de verelim
+                updateUI();
+                tg.showAlert("Tebrikler! +0.01 GH/s ve +5 Point kazandın.");
+            }, 2000);
+        }
+
+        function claimChannelReward() {
+            if(!userData.isJoined) {
+                userData.gh += 0.1;
+                userData.isJoined = true;
+                updateUI();
+                tg.showConfirm("Kanal ödülü eklendi!");
+            }
+        }
+
+        function startMining() {
+            setInterval(() => {
+                if (userData.gh > 0) {
+                    // Saniyelik kazanç hesaplama: (GH * Günlük Kazanç) / 86400 saniye
+                    let perSecond = (userData.gh * GH_RATE) / 86400;
+                    userData.balance += perSecond;
+                    updateUI();
+                }
+            }, 1000);
+        }
+
+        function requestWithdraw() {
+            let amount = parseFloat(document.getElementById('withdrawAmount').value);
+            let address = document.getElementById('withdrawAddress').value;
+            let requiredPoints = amount * 25;
+
+            if (amount < 5) {
+                tg.showAlert("Minimum çekim 5$ olmalıdır.");
+                return;
+            }
+            if (userData.points < requiredPoints) {
+                tg.showAlert(`Yetersiz Point! ${amount}$ çekmek için ${requiredPoints} Point gerekir. Şu an: ${userData.points}`);
+                return;
+            }
+            if (userData.balance < amount) {
+                tg.showAlert("Yetersiz bakiye.");
+                return;
+            }
+
+            tg.showConfirm(`${amount}$ tutarındaki çekim talebi ${address} adresine iletilecek. Onaylıyor musunuz?`, (ok) => {
+                if(ok) {
+                    userData.balance -= amount;
+                    userData.points -= requiredPoints;
+                    updateUI();
+                    tg.showAlert("Talebiniz alındı! Admin onayından sonra cüzdanınıza yansıyacaktır.");
+                }
+            });
+        }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
